@@ -5,6 +5,7 @@ import LevelProgressCard from "./components/LevelProgressCard";
 import StreakStatsCard from "./components/StreakStatsCard";
 import CategoryCompletionCard from "./components/CategoryCompletionCard";
 import WeeklyPerformanceCard from "./components/WeeklyPerformanceCard";
+import ActionButton from "./components/ActionButton";
 
 export default async function Home() {
   const data = await getDashboardData();
@@ -15,7 +16,11 @@ export default async function Home() {
       <NavigationTabs />
       <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-6">
         <div className="flex justify-between items-center mb-8">
-          <div />
+          <ActionButton 
+            label="Start New Session"
+            tooltip="Begin a new learning session to earn XP and maintain your streak"
+            variant="primary"
+          />
           <UserInfo
             name={user.name}
             level={user.level}
