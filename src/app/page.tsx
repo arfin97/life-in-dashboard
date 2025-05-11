@@ -1,17 +1,36 @@
-import Image from "next/image";
+import NavigationTabs from "./components/NavigationTabs";
+import UserInfo from "./components/UserInfo";
+import { getDashboardData } from "./data/dashboardData";
+import LevelProgressCard from "./components/LevelProgressCard";
+import StreakStatsCard from "./components/StreakStatsCard";
+import CategoryCompletionCard from "./components/CategoryCompletionCard";
 
-export default function Home() {
+export default async function Home() {
+  const data = await getDashboardData();
+  const { user } = data;
+
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-100">
-      <button
-        className="relative px-6 py-3 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition-colors duration-200 group"
-        title="This is a tooltip!"
-      >
-        Hover me!
-        <span className="absolute -top-10 left-1/2 transform -translate-x-1/2 px-3 py-1 bg-gray-800 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-          This is a tooltip!
-        </span>
-      </button>
-    </main>
+    <div className="min-h-screen bg-gray-100">
+      <NavigationTabs />
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-6">
+        <div className="flex justify-between items-center mb-8">
+          <div />
+          <UserInfo
+            name={user.name}
+            level={user.level}
+            currentStreak={user.currentStreak}
+            date={user.date}
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+          <LevelProgressCard level={user.level} xp={user.xp} nextLevelXP={user.nextLevelXP} />
+          <StreakStatsCard currentStreak={user.currentStreak} bestStreak={user.bestStreak} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+          <CategoryCompletionCard labels={data.radar.labels} data={data.radar.data} />
+          {/* Placeholder for Weekly Performance card */}
+        </div>
+      </div>
+    </div>
   );
 }
