@@ -16,14 +16,41 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { format, parse } from 'date-fns';
 
 const columns = [
-  "Date", "Ring", "Fast", "No Junk", "Learn Health", "No caffeine after 7 pm", "No food after 9 pm", "Dim lights after 12 am", "In bed before 1 am", "Strain", "Impact", "HRV next day", "RHR next day", "Sleep score next day", "Recovery score next day", "Did you logged food?"
+  "Date", 
+  "Did you completed the Ring?", 
+  "Did you completed the Fast?", 
+  "Did you followed No Junk?", 
+  "Did you learned anything about health?", 
+  "Did you followed no caffeine after 7 pm", 
+  "Did you followed no food after 9 pm", 
+  "Did you followed to dim lights after 12 am", 
+  "Were you in bed before 1 am", 
+  "HRV next day", 
+  "RHR next day", 
+  "Sleep score next day", 
+  "Recovery score next day", 
+  "Did you logged calories of food?",
+  "Strain"
 ];
 
 const habitColumns = [
-  "Ring", "Fast", "No Junk", "Learn Health", "No caffeine after 7 pm", "No food after 9 pm", "Dim lights after 12 am", "In bed before 1 am", "Strain", "Impact", "Did you logged food?"
+  "Did you completed the Ring?", 
+  "Did you completed the Fast?", 
+  "Did you followed No Junk?", 
+  "Did you learned anything about health?", 
+  "Did you followed no caffeine after 7 pm", 
+  "Did you followed no food after 9 pm", 
+  "Did you followed to dim lights after 12 am", 
+  "Were you in bed before 1 am", 
+  "Did you logged calories of food?"
 ];
+
 const metricColumns = [
-  "HRV next day", "RHR next day", "Sleep score next day", "Recovery score next day"
+  "HRV next day", 
+  "RHR next day", 
+  "Sleep score next day", 
+  "Recovery score next day",
+  "Strain"
 ];
 
 const year = 2025;
@@ -48,6 +75,8 @@ export default function Health2Page() {
   const [formDate, setFormDate] = useState(todayStr);
   const [formHabits, setFormHabits] = useState(habitColumns.reduce((acc, h) => ({ ...acc, [h]: "" }), {}));
   const [formMetrics, setFormMetrics] = useState(metricColumns.reduce((acc, m) => ({ ...acc, [m]: "" }), {}));
+  const [editingRow, setEditingRow] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<any>({});
 
   // Helper to convert yyyy-mm-dd to table date string
   function formatDateToTableString(dateStr) {
@@ -136,6 +165,64 @@ export default function Health2Page() {
     });
   }
 
+  function handleEditClick(date: string) {
+    const row = tableData.find((r) => r.date === date);
+    if (row) {
+      const habits = {};
+      habitColumns.forEach((h, idx) => {
+        habits[h] = row.values[idx] === "green" ? "yes" : row.values[idx] === "red" ? "no" : "";
+      });
+      const metrics = {};
+      metricColumns.forEach((m, idx) => {
+        const colIdx = columns.indexOf(m) - 1;
+        metrics[m] = row.values[colIdx] && !isNaN(Number(row.values[colIdx])) ? row.values[colIdx] : "";
+      });
+      setEditValues({ habits, metrics });
+      setEditingRow(date);
+    }
+  }
+
+  function handleEditSave(date: string) {
+    const updated = tableData.map((row) => {
+      if (row.date !== date) return row;
+      const newValues = [...row.values];
+      habitColumns.forEach((h, idx) => {
+        newValues[idx] = editValues.habits[h] === "yes" ? "green" : editValues.habits[h] === "no" ? "red" : "";
+      });
+      metricColumns.forEach((m, idx) => {
+        const colIdx = columns.indexOf(m) - 1;
+        newValues[colIdx] = editValues.metrics[m] !== "" ? editValues.metrics[m] : "";
+      });
+      return { ...row, values: newValues };
+    });
+    setTableData(updated);
+    setEditingRow(null);
+    // Save to backend
+    fetch("/api/health2/save-table", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updated),
+    });
+  }
+
+  function handleEditCancel() {
+    setEditingRow(null);
+  }
+
+  function handleEditHabitChange(h: string, val: string) {
+    setEditValues((prev: any) => ({
+      ...prev,
+      habits: { ...prev.habits, [h]: val }
+    }));
+  }
+
+  function handleEditMetricChange(m: string, val: string) {
+    setEditValues((prev: any) => ({
+      ...prev,
+      metrics: { ...prev.metrics, [m]: val }
+    }));
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <NavigationTabs />
@@ -175,10 +262,76 @@ export default function Health2Page() {
                         key={row.date}
                         className={`${rowClass} ${textClass} rounded-lg transition hover:bg-purple-50 hover:shadow`}
                       >
-                        <td className="px-2 py-2 font-medium whitespace-nowrap border border-gray-200">{row.date}</td>
+                        <td className="px-2 py-2 font-medium whitespace-nowrap border border-gray-200">
+                          {row.date}
+                          {editingRow === row.date ? (
+                            <div className="flex gap-2 mt-2">
+                              <button
+                                onClick={() => handleEditSave(row.date)}
+                                className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={handleEditCancel}
+                                className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleEditClick(row.date)}
+                              className="ml-2 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </td>
                         {row.values.map((val, idx) => {
-                          // Show numbers for metrics
                           const colName = columns[idx + 1];
+                          if (editingRow === row.date) {
+                            if (habitColumns.includes(colName)) {
+                              return (
+                                <td key={idx} className="px-2 py-2 text-center border border-gray-200">
+                                  <div className="flex justify-center gap-2">
+                                    <button
+                                      onClick={() => handleEditHabitChange(colName, "yes")}
+                                      className={`px-2 py-1 text-xs rounded ${
+                                        editValues.habits[colName] === "yes"
+                                          ? "bg-green-500 text-white"
+                                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                      }`}
+                                    >
+                                      Yes
+                                    </button>
+                                    <button
+                                      onClick={() => handleEditHabitChange(colName, "no")}
+                                      className={`px-2 py-1 text-xs rounded ${
+                                        editValues.habits[colName] === "no"
+                                          ? "bg-red-500 text-white"
+                                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                      }`}
+                                    >
+                                      No
+                                    </button>
+                                  </div>
+                                </td>
+                              );
+                            } else if (metricColumns.includes(colName)) {
+                              return (
+                                <td key={idx} className="px-2 py-2 text-center border border-gray-200">
+                                  <input
+                                    type="number"
+                                    value={editValues.metrics[colName]}
+                                    onChange={(e) => handleEditMetricChange(colName, e.target.value)}
+                                    className="w-20 px-2 py-1 text-center border rounded"
+                                  />
+                                </td>
+                              );
+                            }
+                          }
+                          // Show numbers for metrics
                           if (metricColumns.includes(colName) && val && !isNaN(Number(val))) {
                             return <td key={idx} className="px-2 py-2 text-center border border-gray-200">{val}</td>;
                           }
