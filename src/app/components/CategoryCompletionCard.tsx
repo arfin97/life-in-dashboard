@@ -49,7 +49,7 @@ export default function CategoryCompletionCard({ labels, data }: CategoryComplet
   };
   return (
     <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-4 h-full">
-      <div className="font-semibold text-lg mb-2">Category Completion</div>
+      <div className="font-semibold text-lg mb-2 text-gray-800">Category Completion</div>
       <div className="h-64">
         <Radar data={chartData} options={options} />
       </div>

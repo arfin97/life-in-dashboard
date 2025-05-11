@@ -4,6 +4,7 @@ import { getDashboardData } from "./data/dashboardData";
 import LevelProgressCard from "./components/LevelProgressCard";
 import StreakStatsCard from "./components/StreakStatsCard";
 import CategoryCompletionCard from "./components/CategoryCompletionCard";
+import WeeklyPerformanceCard from "./components/WeeklyPerformanceCard";
 
 export default async function Home() {
   const data = await getDashboardData();
@@ -28,7 +29,7 @@ export default async function Home() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
           <CategoryCompletionCard labels={data.radar.labels} data={data.radar.data} />
-          {/* Placeholder for Weekly Performance card */}
+          <WeeklyPerformanceCard data={data.weeklyPerformance} />
         </div>
       </div>
     </div>

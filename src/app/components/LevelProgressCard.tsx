@@ -9,7 +9,7 @@ export default function LevelProgressCard({ level, xp, nextLevelXP }: LevelProgr
   return (
     <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-2">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-lg font-semibold">Level {level}</span>
+        <span className="text-lg font-semibold text-gray-800">Level {level}</span>
         <span className="ml-auto text-sm text-gray-400">Level {level + 1}</span>
       </div>
       <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
