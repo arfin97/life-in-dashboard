@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import NavigationTabs from "../components/NavigationTabs";
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -56,7 +56,6 @@ const metricColumns = [
 const year = 2025;
 const month = 4; // May (0-indexed)
 const daysInMay = 31;
-const today = new Date();
 
 function getDefaultData() {
   return Array.from({ length: daysInMay }, (_, i) => {
@@ -70,13 +69,38 @@ function getDefaultData() {
 }
 
 export default function Health2Page() {
-  const todayStr = useMemo(() => today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }), []);
+  const [mounted, setMounted] = useState(false);
+  const todayStr = useMemo(() => {
+    if (!mounted) return format(new Date(year, month, 1), 'dd/MM/yyyy');
+    return format(new Date(), 'dd/MM/yyyy');
+  }, [mounted]);
+  
   const [tableData, setTableData] = useState(getDefaultData());
   const [formDate, setFormDate] = useState(todayStr);
   const [formHabits, setFormHabits] = useState(habitColumns.reduce((acc, h) => ({ ...acc, [h]: "" }), {}));
   const [formMetrics, setFormMetrics] = useState(metricColumns.reduce((acc, m) => ({ ...acc, [m]: "" }), {}));
   const [editingRow, setEditingRow] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<any>({});
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  function scrollToToday() {
+    if (!mounted) return;
+    if (tableRef.current) {
+      const todayRow = tableRef.current.querySelector(`[data-date="${todayStr}"]`);
+      if (todayRow) {
+        todayRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add a highlight effect
+        todayRow.classList.add('highlight-row');
+        setTimeout(() => {
+          todayRow.classList.remove('highlight-row');
+        }, 2000);
+      }
+    }
+  }
 
   // Helper to convert yyyy-mm-dd to table date string
   function formatDateToTableString(dateStr) {
@@ -223,13 +247,19 @@ export default function Health2Page() {
     }));
   }
 
+  function handleTodayClick() {
+    if (!mounted) return;
+    const today = new Date();
+    handleDateChangeMui(today);
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <NavigationTabs />
       <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-6">
         <h1 className="text-2xl font-bold text-purple-700 mb-6">Health Tracking</h1>
         <div className="overflow-x-auto bg-white rounded-xl shadow p-6">
-          <div className="max-h-[500px] overflow-y-auto">
+          <div className="max-h-[500px] overflow-y-auto" ref={tableRef}>
             <table className="min-w-full border-separate border-spacing-y-2">
               <thead>
                 <tr>
@@ -243,8 +273,8 @@ export default function Health2Page() {
                   const rows = [];
                   for (let i = 0; i < tableData.length; i++) {
                     const row = tableData[i];
-                    const isToday = row.date === todayStr;
-                    const isPast = row.raw < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                    const isToday = mounted && row.date === todayStr;
+                    const isPast = mounted && row.raw < new Date();
                     let rowClass = "";
                     let textClass = "";
                     if (isToday) {
@@ -260,6 +290,7 @@ export default function Health2Page() {
                     rows.push(
                       <tr
                         key={row.date}
+                        data-date={row.date}
                         className={`${rowClass} ${textClass} rounded-lg transition hover:bg-purple-50 hover:shadow`}
                       >
                         <td className="px-2 py-2 font-medium whitespace-nowrap border border-gray-200">
@@ -375,6 +406,17 @@ export default function Health2Page() {
               </tbody>
             </table>
           </div>
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={scrollToToday}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+            >
+              <span>Go to Today</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
         </div>
         {/* Data Input Section with Material UI */}
         <Box className="bg-white rounded-xl shadow p-6 mt-8">
@@ -383,17 +425,34 @@ export default function Health2Page() {
           </Typography>
           <Grid container spacing={2} mb={2}>
             <Grid item xs={12} md={6}>
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <DatePicker
-                  label="Select Date"
-                  value={formDateObj}
-                  minDate={new Date(2025, 4, 1)}
-                  maxDate={new Date(2025, 4, 31)}
-                  onChange={handleDateChangeMui}
-                  format="dd/MM/yyyy"
-                  slotProps={{ textField: { fullWidth: true, size: 'small', InputLabelProps: { style: { color: 'black' } }, InputProps: { style: { color: 'black' } } } }}
-                />
-              </LocalizationProvider>
+              <Box display="flex" gap={2} alignItems="center">
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <DatePicker
+                    label="Select Date"
+                    value={formDateObj}
+                    minDate={new Date(2025, 4, 1)}
+                    maxDate={new Date(2025, 4, 31)}
+                    onChange={handleDateChangeMui}
+                    format="dd/MM/yyyy"
+                    slotProps={{ textField: { fullWidth: true, size: 'small', InputLabelProps: { style: { color: 'black' } }, InputProps: { style: { color: 'black' } } } }}
+                  />
+                </LocalizationProvider>
+                <Button
+                  variant="outlined"
+                  onClick={handleTodayClick}
+                  sx={{ 
+                    height: '40px',
+                    color: 'black',
+                    borderColor: 'black',
+                    '&:hover': {
+                      borderColor: 'purple.600',
+                      color: 'purple.600'
+                    }
+                  }}
+                >
+                  Today
+                </Button>
+              </Box>
             </Grid>
           </Grid>
           <Typography variant="subtitle1" sx={{ color: 'black' }} fontWeight={600} mb={1}>
